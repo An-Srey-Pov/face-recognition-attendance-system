@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        {{ student["full_name"] }} | Student Profile
+    </title>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #3b82f6;
+            --background: #f1f5f9;
+            --header-bg: #dbeafe;
+            --header-text: #1e3a8a;
+            --header-muted: #1e40af;
+            --soft: #eff6ff;
+            --soft-border: #bfdbfe;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--text);
+            background: var(--background);
+            font-family:
+                "Segoe UI",
+                system-ui,
+                -apple-system,
+                sans-serif;
+        }
+
+        /* ==================================================
+           HEADER
+        ================================================== */
+
+        .header {
+            padding: 38px 20px 112px;
+            color: var(--header-text);
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--soft-border);
+        }
+
+        .header-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .back {
+            display: inline-flex;
+            align-items: center;
+            color: var(--header-text);
+            text-decoration: none;
+            font-weight: 650;
+            opacity: 0.9;
+            transition:
+                opacity 0.15s,
+                transform 0.15s;
+        }
+
+        .back:hover {
+            opacity: 1;
+            transform: translateX(-3px);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            color: var(--primary);
+            background: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+            transition:
+                transform 0.15s,
+                box-shadow 0.15s;
+        }
+
+        .header-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+        }
+
+        .logout-form {
+            margin: 0;
+        }
+
+        .logout-button {
+            padding: 10px 16px;
+            color: var(--primary-dark);
+            background: #ffffff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            transition:
+                background 0.15s,
+                transform 0.15s;
+        }
+
+        .logout-button:hover {
+            background: #eff6ff;
+            transform: translateY(-2px);
+        }
+
+        /* ==================================================
+           PROFILE HERO
+        ================================================== */
+
+        .hero {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .profile-avatar {
+            width: 84px;
+            height: 84px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--primary-dark);
+            background: #ffffff;
+            border: 3px solid #93c5fd;
+            border-radius: 50%;
+            font-size: 36px;
+            font-weight: 800;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .hero p {
+            margin: 5px 0 0;
+            opacity: 1;
+            color: var(--header-muted);
+        }
+
+        /* ==================================================
+           USER INFORMATION
+        ================================================== */
+
+        .user-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 22px;
+            font-size: 14px;
+        }
+
+        .user-name {
+            font-weight: 800;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 5px 11px;
+            background: #ffffff;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #1e40af;
+        }
+
+        .read-only-badge {
+            display: inline-block;
+            padding: 5px 11px;
+            color: #92400e;
+            background: #fef3c7;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        /* ==================================================
+           PAGE LAYOUT
+        ================================================== */
+
+        .container {
+            max-width: 1000px;
+            margin: -70px auto 40px;
+            padding: 0 20px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .card {
+            padding: 26px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+        }
+
+        .card h2 {
+            margin: 0 0 18px;
+            font-size: 19px;
+        }
+
+        /* ==================================================
+           FLASH MESSAGES
+        ================================================== */
+
+        .flash-area {
+            display: grid;
+            gap: 10px;
+        }
+
+        .alert {
+            padding: 13px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1.5;
+        }
+
+        .alert-success {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .alert-warning {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .alert-error {
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        /* ==================================================
+           ADMIN ACTIONS
+        ================================================== */
+
+        .actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .actions form {
+            margin: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 11px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            transition:
+                transform 0.15s,
+                background 0.15s,
+                box-shadow 0.15s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-edit {
+            color: white;
+            background: var(--primary);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-edit:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 7px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-delete {
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        .btn-delete:hover {
+            background: #fecaca;
+        }
+
+        .readonly-message {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 17px;
+            color: #1e40af;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .readonly-icon {
+            font-size: 24px;
+        }
+
+        /* ==================================================
+           STUDENT DETAILS
+        ================================================== */
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .item .label {
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .item .value {
+            font-size: 16px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .mono {
+            font-family: Consolas, monospace;
+        }
+
+        /* ==================================================
+           FACE REGISTRATION
+        ================================================== */
+
+        .face {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 17px;
+            border-radius: 12px;
+        }
+
+        .face.ok {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .face.none {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .face .icon {
+            font-size: 28px;
+        }
+
+        .face .title {
+            font-weight: 800;
+        }
+
+        .face .sub {
+            margin-top: 3px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .hint {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        code {
+            padding: 3px 7px;
+            color: #475569;
+            background: #f1f5f9;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+
+        /* ==================================================
+           MOST RECENT ATTENDANCE
+        ================================================== */
+
+        .recent-attendance {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+            padding: 18px 20px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 14px;
+        }
+
+        .recent-item {
+            min-width: 0;
+        }
+
+        .recent-label {
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .recent-value {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        /* ==================================================
+           ATTENDANCE STATISTICS
+        ================================================== */
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .stat {
+            min-height: 108px;
+            padding: 17px 13px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: #f8fafc;
+            border-top: 4px solid var(--primary);
+            border-radius: 12px;
+        }
+
+        .stat.on-time {
+            background: #f0fdf4;
+            border-top-color: var(--success);
+        }
+
+        .stat.late {
+            background: #fef2f2;
+            border-top-color: var(--danger);
+        }
+
+        .stat.early {
+            background: #fffbeb;
+            border-top-color: var(--warning);
+        }
+
+        .stat .num {
+            font-size: 29px;
+            font-weight: 800;
+        }
+
+        .stat .label {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        /* ==================================================
+           ATTENDANCE TABLE
+        ================================================== */
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 11px 12px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 800;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        td {
+            padding: 13px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr {
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ==================================================
+           ATTENDANCE BADGES
+        ================================================== */
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-on-time {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .badge-late {
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        .badge-early {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .badge-check-in {
+            color: #1e40af;
+            background: #dbeafe;
+        }
+
+        .badge-check-out {
+            color: #334155;
+            background: #e2e8f0;
+        }
+
+        /* ==================================================
+           EMPTY STATE
+        ================================================== */
+
+        .empty {
+            padding: 30px 0 12px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .empty-icon {
+            margin-bottom: 8px;
+            font-size: 42px;
+        }
+
+        /* ==================================================
+           RESPONSIVE DESIGN
+        ================================================== */
+
+        @media (max-width: 800px) {
+            .recent-attendance,
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                padding: 30px 16px 103px;
+            }
+
+            .header-top {
+                align-items: stretch;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .header-actions .header-link,
+            .logout-form,
+            .logout-button {
+                width: 100%;
+            }
+
+            .hero h1 {
+                font-size: 24px;
+            }
+
+            .container {
+                padding: 0 14px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .details,
+            .recent-attendance,
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions .btn,
+            .actions form,
+            .actions form button {
+                width: 100%;
+            }
+        }
+
+        /* ---------- Accessibility ---------- */
+        a:focus-visible,
+        button:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.5);
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+
+        <div class="header-inner">
+
+            <div class="header-top">
+
+                <a
+                    class="back"
+                    href="{{ url_for('students') }}"
+                >
+                    ← Back to Student List
+                </a>
+
+
+                <div class="header-actions">
+
+                    <a
+                        class="header-link"
+                        href="{{ url_for('dashboard.attendance') }}"
+                    >
+                        📊 Dashboard
+                    </a>
+
+                    <form
+                        action="{{ url_for('logout') }}"
+                        method="POST"
+                        class="logout-form"
+                    >
+                        <button
+                            type="submit"
+                            class="logout-button"
+                        >
+                            Sign Out
+                        </button>
+                    </form>
+
+                </div>
+
+            </div>
+
+
+            <div class="hero">
+
+                <div class="profile-avatar">
+                    {{ (student["full_name"] or "?")[0]|upper }}
+                </div>
+
+                <div>
+                    <h1>
+                        {{ student["full_name"] }}
+                    </h1>
+
+                    <p>
+                        {{ student["student_code"] }}
+
+                        {% if student["department"] %}
+                            · {{ student["department"] }}
+                        {% endif %}
+
+                        {% if student["year_level"] %}
+                            · Year {{ student["year_level"] }}
+                        {% endif %}
+                    </p>
+                </div>
+
+            </div>
+
+
+            {% if current_user %}
+
+                <div class="user-bar">
+
+                    <span>
+                        Signed in as
+                        <span class="user-name">
+                            {{ current_user["full_name"] }}
+                        </span>
+                    </span>
+
+                    {% if current_user["role"] == "admin" %}
+
+                        <span class="role-badge">
+                            Administrator
+                        </span>
+
+                    {% else %}
+
+                        <span class="role-badge">
+                            Class Monitor
+                        </span>
+
+                        <span class="read-only-badge">
+                            Read-only access
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </header>
+
+
+    <main class="container">
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+            {% if messages %}
+
+                <section class="flash-area">
+
+                    {% for category, message in messages %}
+
+                        {% if category == "success" %}
+
+                            <div class="alert alert-success">
+                                {{ message }}
+                            </div>
+
+                        {% elif category == "warning" %}
+
+                            <div class="alert alert-warning">
+                                {{ message }}
+                            </div>
+
+                        {% else %}
+
+                            <div class="alert alert-error">
+                                {{ message }}
+                            </div>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                </section>
+
+            {% endif %}
+
+        {% endwith %}
+
+
+        <!-- Role-sensitive actions -->
+        <section class="card">
+
+            {% if current_user["role"] == "admin" %}
+
+                <div class="actions">
+
+                     <a
+                         href="{{ url_for('edit_student', id=student['id']) }}"
+                         class="btn btn-edit"
+                    >
+                        ✏️ Edit Student
+                    </a>
+
+                     <form
+                         action="{{ url_for('delete_student_route', id=student['id']) }}"
+                        method="POST"
+                        id="delete-student-form"
+                    >
+                        <button
+                            type="submit"
+                            class="btn btn-delete"
+                        >
+                            🗑️ Delete Student
+                        </button>
+                    </form>
+
+                </div>
+
+            {% else %}
+
+                <div class="readonly-message">
+
+                    <div class="readonly-icon">
+                        👁️
+                    </div>
+
+                    <div>
+                        This profile is available in read-only mode.
+                        A Class Monitor can view student and attendance
+                        information but cannot edit or delete records.
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- Student information -->
+        <section class="card">
+
+            <h2>👤 Student Information</h2>
+
+            <div class="details">
+
+                <div class="item">
+                    <div class="label">
+                        Student Code
+                    </div>
+
+                    <div class="value mono">
+                        {{ student["student_code"] }}
+                    </div>
+                </div>
+
+
+                <div class="item">
+                    <div class="label">
+                        Full Name
+                    </div>
+
+                    <div class="value">
+                        {{ student["full_name"] }}
+                    </div>
+                </div>
+
+
+                <div class="item">
+                    <div class="label">
+                        Email
+                    </div>
+
+                    <div class="value">
+                        {{ student["email"] or "—" }}
+                    </div>
+                </div>
+
+
+                <div class="item">
+                    <div class="label">
+                        Department
+                    </div>
+
+                    <div class="value">
+                        {{ student["department"] or "—" }}
+                    </div>
+                </div>
+
+
+                <div class="item">
+                    <div class="label">
+                        Year Level
+                    </div>
+
+                    <div class="value">
+                        {{ student["year_level"] or "—" }}
+                    </div>
+                </div>
+
+
+                <div class="item">
+                    <div class="label">
+                        Registered On
+                    </div>
+
+                    <div class="value">
+                        {{ student["created_at"] or "—" }}
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Face registration -->
+        <section class="card">
+
+            <h2>📷 Face Registration</h2>
+
+            {% if photo_count > 0 %}
+
+                <div class="face ok">
+
+                    <div class="icon">
+                        ✅
+                    </div>
+
+                    <div>
+                        <div class="title">
+                            Face Registered
+                        </div>
+
+                        <div class="sub">
+                            {{ photo_count }}
+                            photo{{ "" if photo_count == 1 else "s" }}
+                            saved
+                        </div>
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <div class="face none">
+
+                    <div class="icon">
+                        ⚠️
+                    </div>
+
+                    <div>
+                        <div class="title">
+                            No Face Photos Yet
+                        </div>
+
+                        <div class="sub">
+                            This student cannot be recognized until
+                            face registration is completed.
+                        </div>
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if current_user["role"] == "admin" %}
+
+                <p class="hint">
+                    To add or update face photos, run
+                    <code>
+                        python -m face_register.get_faces_from_camera
+                    </code>
+                    and select this student. Then run
+                    <code>
+                        python -m face_recognition.train_model
+                    </code>.
+                </p>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- Attendance history -->
+        <section class="card">
+
+            <h2>🕒 Attendance History</h2>
+
+
+            {% if last_record %}
+
+                <div class="recent-attendance">
+
+                    <div class="recent-item">
+                        <div class="recent-label">
+                            Most Recent Date
+                        </div>
+
+                        <div class="recent-value">
+                            {{ last_record["date"] }}
+                        </div>
+                    </div>
+
+
+                    <div class="recent-item">
+                        <div class="recent-label">
+                            Time
+                        </div>
+
+                        <div class="recent-value">
+                            {{ last_record["time"] }}
+                        </div>
+                    </div>
+
+
+                    <div class="recent-item">
+                        <div class="recent-label">
+                            Type
+                        </div>
+
+                        <div class="recent-value">
+
+                            {% if last_record["type"] == "check-in" %}
+                                Check-In
+                            {% else %}
+                                Check-Out
+                            {% endif %}
+
+                        </div>
+                    </div>
+
+
+                    <div class="recent-item">
+                        <div class="recent-label">
+                            Status
+                        </div>
+
+                        {% if last_record["status"] == "On Time" %}
+
+                            <span class="badge badge-on-time">
+                                On Time
+                            </span>
+
+                        {% elif last_record["status"] == "Late" %}
+
+                            <span class="badge badge-late">
+                                Late
+                            </span>
+
+                        {% elif last_record["status"] == "Early Leave" %}
+
+                            <span class="badge badge-early">
+                                Early Leave
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge badge-early">
+                                {{ last_record["status"] }}
+                            </span>
+
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            {% if records %}
+
+                <!-- Attendance summary -->
+                <div class="stats">
+
+                    <div class="stat">
+
+                        <div class="num">
+                            {{ attendance_days }}
+                        </div>
+
+                        <div class="label">
+                            Attendance Days
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat on-time">
+
+                        <div class="num">
+                            {{ on_time_checkin_count }}
+                        </div>
+
+                        <div class="label">
+                            On-Time Check-Ins
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat late">
+
+                        <div class="num">
+                            {{ late_count }}
+                        </div>
+
+                        <div class="label">
+                            Late Check-Ins
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat early">
+
+                        <div class="num">
+                            {{ early_leave_count }}
+                        </div>
+
+                        <div class="label">
+                            Early Leaves
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Complete attendance records -->
+                <div class="table-wrap">
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for record in records %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ loop.index }}
+                                    </td>
+
+                                    <td>
+                                        {{ record["date"] }}
+                                    </td>
+
+                                    <td>
+                                        {{ record["time"] }}
+                                    </td>
+
+                                    <td>
+
+                                        {% if record["type"] == "check-in" %}
+
+                                            <span
+                                                class="badge badge-check-in"
+                                            >
+                                                Check-In
+                                            </span>
+
+                                        {% else %}
+
+                                            <span
+                                                class="badge badge-check-out"
+                                            >
+                                                Check-Out
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td>
+
+                                        {% if record["status"] == "On Time" %}
+
+                                            <span
+                                                class="badge badge-on-time"
+                                            >
+                                                On Time
+                                            </span>
+
+                                        {% elif record["status"] == "Late" %}
+
+                                            <span
+                                                class="badge badge-late"
+                                            >
+                                                Late
+                                            </span>
+
+                                        {% elif record["status"] == "Early Leave" %}
+
+                                            <span
+                                                class="badge badge-early"
+                                            >
+                                                Early Leave
+                                            </span>
+
+                                        {% else %}
+
+                                            <span
+                                                class="badge badge-early"
+                                            >
+                                                {{ record["status"] }}
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="empty">
+
+                    <div class="empty-icon">
+                        📭
+                    </div>
+
+                    <div>
+                        No attendance records yet.
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+
+    <script>
+        const deleteForm =
+            document.getElementById("delete-student-form");
+
+        if (deleteForm) {
+            deleteForm.addEventListener(
+                "submit",
+                function (event) {
+                    const confirmed = confirm(
+                        "Delete {{ student['full_name']|e }} and all related attendance records?"
+                    );
+
+                    if (!confirmed) {
+                        event.preventDefault();
+                    }
+                }
+            );
+        }
+    </script>
+
+</body>
+
+</html>

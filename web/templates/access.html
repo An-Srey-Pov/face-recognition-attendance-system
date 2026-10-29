@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Access Denied | Attendance System</title>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #3b82f6;
+            --background: #f1f5f9;
+            --header-bg: #dbeafe;
+            --header-text: #1e3a8a;
+            --header-muted: #1e40af;
+            --soft: #eff6ff;
+            --soft-border: #bfdbfe;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: var(--text);
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(37, 99, 235, 0.14),
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at bottom right,
+                    rgba(96, 165, 250, 0.14),
+                    transparent 35%
+                ),
+                var(--background);
+            font-family:
+                "Segoe UI",
+                system-ui,
+                -apple-system,
+                sans-serif;
+        }
+
+        .error-card {
+            width: 100%;
+            max-width: 620px;
+            padding: 48px;
+            text-align: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.13);
+        }
+
+        .error-icon {
+            width: 92px;
+            height: 92px;
+            margin: 0 auto 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--danger);
+            background: var(--danger-light);
+            border-radius: 50%;
+            font-size: 43px;
+        }
+
+        .error-code {
+            margin-bottom: 8px;
+            color: var(--danger);
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 32px;
+        }
+
+        .message {
+            max-width: 470px;
+            margin: 16px auto 0;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .account-box {
+            margin: 25px 0;
+            padding: 15px 17px;
+            color: #475569;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .role-badge {
+            display: inline-block;
+            margin-left: 5px;
+            padding: 3px 10px;
+            color: #1e40af;
+            background: #dbeafe;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 11px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 21px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 750;
+            text-decoration: none;
+            transition:
+                transform 0.15s,
+                background 0.15s,
+                box-shadow 0.15s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            color: white;
+            background: linear-gradient(
+                135deg,
+                var(--primary),
+                var(--primary-dark)
+            );
+            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.28);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 9px 20px rgba(37, 99, 235, 0.34);
+        }
+
+        .btn-secondary {
+            color: #475569;
+            background: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .logout-form {
+            margin: 0;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 14px;
+            }
+
+            .error-card {
+                padding: 35px 22px;
+                border-radius: 18px;
+            }
+
+            h1 {
+                font-size: 27px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions .btn,
+            .logout-form,
+            .logout-form button {
+                width: 100%;
+            }
+        }
+
+        /* ---------- Accessibility ---------- */
+        a:focus-visible,
+        button:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.5);
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="error-card">
+
+        <div class="error-icon">
+            🔒
+        </div>
+
+        <div class="error-code">
+            Error 403
+        </div>
+
+        <h1>Access Denied</h1>
+
+        <p class="message">
+            The current account does not have permission to perform
+            this action. Class Monitor accounts have read-only access
+            to students and attendance information.
+        </p>
+
+
+        {% if current_user %}
+
+            <div class="account-box">
+                Signed in as
+                <strong>
+                    {{ current_user["full_name"] }}
+                </strong>
+
+                {% if current_user["role"] == "monitor" %}
+                    <span class="role-badge">
+                        Class Monitor
+                    </span>
+                {% elif current_user["role"] == "admin" %}
+                    <span class="role-badge">
+                        Administrator
+                    </span>
+                {% endif %}
+            </div>
+
+        {% endif %}
+
+
+        <div class="actions">
+
+            <a
+                href="{{ url_for('dashboard.attendance') }}"
+                class="btn btn-primary"
+            >
+                📊 Return to Dashboard
+            </a>
+
+            <a
+                href="{{ url_for('students') }}"
+                class="btn btn-secondary"
+            >
+                🎓 View Students
+            </a>
+
+            {% if current_user %}
+                <form
+                    action="{{ url_for('logout') }}"
+                    method="POST"
+                    class="logout-form"
+                >
+                    <button
+                        type="submit"
+                        class="btn btn-secondary"
+                    >
+                        Sign Out
+                    </button>
+                </form>
+            {% endif %}
+
+        </div>
+
+    </main>
+
+</body>
+
+</html>

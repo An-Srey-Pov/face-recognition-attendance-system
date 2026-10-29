@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Sign In | Attendance System</title>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #3b82f6;
+            --background: #eff6ff;
+            --header-bg: #dbeafe;
+            --header-text: #1e3a8a;
+            --header-muted: #1e40af;
+            --soft: #eff6ff;
+            --soft-border: #bfdbfe;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #cbd5e1;
+            --danger-text: #b91c1c;
+            --danger-background: #fee2e2;
+            --success-text: #166534;
+            --success-background: #dcfce7;
+            --warning-text: #92400e;
+            --warning-background: #fef3c7;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: var(--text);
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(37, 99, 235, 0.18),
+                    transparent 34%
+                ),
+                radial-gradient(
+                    circle at bottom right,
+                    rgba(96, 165, 250, 0.18),
+                    transparent 34%
+                ),
+                var(--background);
+            font-family:
+                "Segoe UI",
+                system-ui,
+                -apple-system,
+                sans-serif;
+        }
+
+        .login-layout {
+            width: 100%;
+            max-width: 980px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            overflow: hidden;
+            background: var(--card);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
+        }
+
+        /* ==========================================
+           BRAND PANEL
+        ========================================== */
+
+        .brand-panel {
+            min-height: 570px;
+            padding: 52px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: var(--header-text);
+            background: var(--header-bg);
+        }
+
+        .brand-icon {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 26px;
+            background: #ffffff;
+            border: 1px solid #bfdbfe;
+            border-radius: 20px;
+            font-size: 34px;
+            backdrop-filter: blur(8px);
+        }
+
+        .brand-panel h1 {
+            max-width: 440px;
+            margin: 0;
+            font-size: 39px;
+            line-height: 1.15;
+        }
+
+        .brand-description {
+            max-width: 430px;
+            margin: 18px 0 0;
+            font-size: 16px;
+            line-height: 1.7;
+            opacity: 1;
+            color: var(--header-muted);
+        }
+
+        .role-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 34px;
+        }
+
+        .role-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #bfdbfe;
+            border-radius: 13px;
+        }
+
+        .role-icon {
+            font-size: 21px;
+        }
+
+        .role-name {
+            font-weight: 800;
+        }
+
+        .role-description {
+            margin-top: 3px;
+            font-size: 13px;
+            line-height: 1.45;
+            opacity: 1;
+            color: var(--header-muted);
+        }
+
+        .brand-footer {
+            margin-top: 34px;
+            font-size: 13px;
+            opacity: 0.85;
+            color: var(--header-muted);
+        }
+
+        /* ==========================================
+           LOGIN PANEL
+        ========================================== */
+
+        .login-panel {
+            padding: 52px 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-panel h2 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .login-subtitle {
+            margin: 9px 0 28px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ==========================================
+           ALERTS
+        ========================================== */
+
+        .alert {
+            margin-bottom: 18px;
+            padding: 13px 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .alert-error {
+            color: var(--danger-text);
+            background: var(--danger-background);
+        }
+
+        .alert-success {
+            color: var(--success-text);
+            background: var(--success-background);
+        }
+
+        .alert-warning {
+            color: var(--warning-text);
+            background: var(--warning-background);
+        }
+
+        /* ==========================================
+           FORM
+        ========================================== */
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            transform: translateY(-50%);
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px 46px 13px 43px;
+            color: var(--text);
+            background: #f8fafc;
+            border: 1.5px solid var(--border);
+            border-radius: 11px;
+            outline: none;
+            font-family: inherit;
+            font-size: 15px;
+            transition:
+                background 0.15s,
+                border-color 0.15s,
+                box-shadow 0.15s;
+        }
+
+        input:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 9px;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            color: var(--muted);
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .login-button {
+            width: 100%;
+            margin-top: 4px;
+            padding: 13px 20px;
+            color: white;
+            background: linear-gradient(
+                135deg,
+                var(--primary),
+                var(--primary-dark)
+            );
+            border: none;
+            border-radius: 11px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 800;
+            box-shadow: 0 7px 18px rgba(37, 99, 235, 0.3);
+            transition:
+                transform 0.15s,
+                box-shadow 0.15s;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 11px 23px rgba(37, 99, 235, 0.35);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .security-note {
+            margin: 22px 0 0;
+            padding-top: 18px;
+            color: var(--muted);
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* ==========================================
+           RESPONSIVE DESIGN
+        ========================================== */
+
+        @media (max-width: 820px) {
+            .login-layout {
+                max-width: 520px;
+                grid-template-columns: 1fr;
+            }
+
+            .brand-panel {
+                min-height: auto;
+                padding: 34px;
+            }
+
+            .brand-panel h1 {
+                font-size: 30px;
+            }
+
+            .role-list,
+            .brand-footer {
+                display: none;
+            }
+
+            .login-panel {
+                padding: 38px 34px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 14px;
+            }
+
+            .login-layout {
+                border-radius: 18px;
+            }
+
+            .brand-panel {
+                padding: 27px 24px;
+            }
+
+            .brand-icon {
+                width: 58px;
+                height: 58px;
+                margin-bottom: 18px;
+                font-size: 28px;
+            }
+
+            .brand-panel h1 {
+                font-size: 25px;
+            }
+
+            .brand-description {
+                font-size: 14px;
+            }
+
+            .login-panel {
+                padding: 30px 22px;
+            }
+
+            .login-panel h2 {
+                font-size: 24px;
+            }
+        }
+
+        /* ---------- Accessibility ---------- */
+        a:focus-visible,
+        button:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.5);
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="login-layout">
+
+        <!-- Branding -->
+        <section class="brand-panel">
+
+            <div>
+                <div class="brand-icon">
+                    📷
+                </div>
+
+                <h1>
+                    Face Recognition Attendance System
+                </h1>
+
+                <p class="brand-description">
+                    Sign in to view student attendance, check-in and
+                    check-out records, late arrivals, and early leaves.
+                </p>
+
+                <div class="role-list">
+
+                    <div class="role-item">
+                        <div class="role-icon">
+                            🔐
+                        </div>
+
+                        <div>
+                            <div class="role-name">
+                                Administrator
+                            </div>
+
+                            <div class="role-description">
+                                Full access to students, attendance
+                                settings, records, and management tools.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="role-item">
+                        <div class="role-icon">
+                            📋
+                        </div>
+
+                        <div>
+                            <div class="role-name">
+                                Class Monitor
+                            </div>
+
+                            <div class="role-description">
+                                Read-only access to student information
+                                and attendance reports.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                Secure role-based access for classroom attendance.
+            </div>
+
+        </section>
+
+
+        <!-- Login form -->
+        <section class="login-panel">
+
+            <h2>Sign In</h2>
+
+            <p class="login-subtitle">
+                Enter the username and password assigned to the account.
+            </p>
+
+
+            <!-- Login validation error -->
+            {% if error %}
+                <div class="alert alert-error" role="alert">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+
+            <!-- Flask flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+
+                        {% if category == "success" %}
+                            <div
+                                class="alert alert-success"
+                                role="status"
+                            >
+                                {{ message }}
+                            </div>
+
+                        {% elif category == "warning" %}
+                            <div
+                                class="alert alert-warning"
+                                role="alert"
+                            >
+                                {{ message }}
+                            </div>
+
+                        {% else %}
+                            <div
+                                class="alert alert-error"
+                                role="alert"
+                            >
+                                {{ message }}
+                            </div>
+                        {% endif %}
+
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+
+            <form method="POST" action="{{ request.full_path }}">
+
+                <div class="form-group">
+                    <label for="username">
+                        Username
+                    </label>
+
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            👤
+                        </span>
+
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            value="{{ request.form.get('username', '') }}"
+                            placeholder="Enter username"
+                            autocomplete="username"
+                            maxlength="50"
+                            required
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+
+                <div class="form-group">
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            🔒
+                        </span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            id="passwordToggle"
+                            aria-label="Show password"
+                            title="Show or hide password"
+                        >
+                            👁
+                        </button>
+                    </div>
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="login-button"
+                >
+                    Sign In
+                </button>
+
+            </form>
+
+
+            <p class="security-note">
+                Access is limited to authorized administrators and
+                class monitors. Passwords are stored securely as hashes.
+            </p>
+
+        </section>
+
+    </main>
+
+
+    <script>
+        const passwordInput =
+            document.getElementById("password");
+
+        const passwordToggle =
+            document.getElementById("passwordToggle");
+
+        passwordToggle.addEventListener(
+            "click",
+            function () {
+                const passwordIsHidden =
+                    passwordInput.type === "password";
+
+                passwordInput.type =
+                    passwordIsHidden
+                        ? "text"
+                        : "password";
+
+                passwordToggle.textContent =
+                    passwordIsHidden
+                        ? "🙈"
+                        : "👁";
+
+                passwordToggle.setAttribute(
+                    "aria-label",
+                    passwordIsHidden
+                        ? "Hide password"
+                        : "Show password"
+                );
+
+                passwordInput.focus();
+            }
+        );
+    </script>
+
+</body>
+
+</html>

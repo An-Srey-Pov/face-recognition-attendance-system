@@ -1,0 +1,107 @@
+# ------------------------------------
+# Python generated files
+# ------------------------------------
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ------------------------------------
+# Virtual environments
+# ------------------------------------
+
+.venv/
+venv/
+env/
+ENV/
+
+# ------------------------------------
+# Environment variables and secrets
+# ------------------------------------
+
+.env
+.env.*
+!.env.example
+
+# ------------------------------------
+# SQLite databases and related files
+# Contains students, attendance, users, and password hashes
+# ------------------------------------
+
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ------------------------------------
+# Student face datasets
+# Never publish real student photographs
+# ------------------------------------
+
+dataset/
+datasets/
+temp/
+
+# ------------------------------------
+# Generated face embeddings
+# Embeddings are biometric templates
+# ------------------------------------
+
+models/embeddings/*.csv
+models/embeddings/*.npy
+models/embeddings/*.npz
+features_all.csv
+
+# ------------------------------------
+# Generated reports and logs
+# ------------------------------------
+
+reports/
+logs/
+*.log
+
+# ------------------------------------
+# Uploaded or generated media
+# ------------------------------------
+
+uploads/
+captures/
+screenshots/
+*.mp4
+*.avi
+*.mov
+
+# ------------------------------------
+# IDE and operating-system files
+# ------------------------------------
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ------------------------------------
+# Test and cache files
+# ------------------------------------
+
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ------------------------------------
+# Local configuration and secret files
+# ------------------------------------
+
+config.local.py
+secrets.json
+credentials.json
+
+# ------------------------------------
+# Optional: large Dlib model files
+# Keep these ignored if you will provide download instructions
+# ------------------------------------
+
+models/trained_model/*.dat

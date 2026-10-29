@@ -1,0 +1,10 @@
+Run these commands from the FaceRecognitionAttendance project directory:
+
+python -m face_register.get_faces_from_camera
+python -m face_recognition.train_model
+python -m face_recognition.recognize
+python app.py
+
+Export a daily report with:
+
+python -m attendance.attendance_report --date YYYY-MM-DD
