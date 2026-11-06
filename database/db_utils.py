@@ -5,7 +5,8 @@ Features:
 - SQLite database connection
 - Database table initialization
 - Attendance schedule settings
-- Student CRUD operations
+- Individual student CRUD operations
+- Bulk student import support
 - Secure user authentication
 - Admin and Class Monitor roles
 - Password hashing
@@ -27,9 +28,9 @@ from werkzeug.security import (
 )
 
 
-# ============================================================
+# --------------------------------------
 # DATABASE CONFIGURATION
-# ============================================================
+# --------------------------------------
 
 DB_PATH = Path(__file__).resolve().with_name(
     "attendance.db"
@@ -48,13 +49,86 @@ ALLOWED_USER_ROLES = {
 }
 
 
-# ============================================================
-# TIME HELPER
-# ============================================================
+# --------------------------------------
+# GENERAL HELPERS
+# --------------------------------------
+
+def _clean_text(value):
+    """
+    Convert a value to a clean string.
+
+    None becomes an empty string. Surrounding spaces are removed.
+    """
+
+    if value is None:
+        return ""
+
+    return str(value).strip()
+
+
+def normalize_student_code(value):
+    """
+    Normalize a student code.
+
+    Numeric student codes are padded to at least two digits:
+
+        1     -> 01
+        2     -> 02
+        10    -> 10
+        125   -> 125
+        1.0   -> 01
+
+    Non-numeric codes are preserved after trimming spaces.
+
+    Examples:
+
+        "01"      -> "01"
+        " 2 "     -> "02"
+        3         -> "03"
+        4.0       -> "04"
+        "ITE001"  -> "ITE001"
+    """
+
+    if value is None:
+        return ""
+
+    # Excel may return numeric cells as int or float.
+    if isinstance(value, bool):
+        return ""
+
+    if isinstance(value, int):
+        return str(value).zfill(2)
+
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value)).zfill(2)
+
+        return str(value).strip()
+
+    code = str(value).strip()
+
+    if not code:
+        return ""
+
+    # Handle text values such as "1.0" from spreadsheets.
+    try:
+        numeric_value = float(code)
+
+        if numeric_value.is_integer():
+            integer_text = str(int(numeric_value))
+
+            # Only normalize when the original value is numeric.
+            return integer_text.zfill(2)
+
+    except ValueError:
+        pass
+
+    return code
+
 
 def _time_string_to_object(time_string):
     """
-    Convert an HH:MM or HH:MM:SS string into a time object.
+    Convert HH:MM or HH:MM:SS text into a time object.
     """
 
     if not isinstance(time_string, str):
@@ -69,10 +143,11 @@ def _time_string_to_object(time_string):
             "Time value cannot be empty."
         )
 
-    if time_string.count(":") == 2:
-        time_format = "%H:%M:%S"
-    else:
-        time_format = "%H:%M"
+    time_format = (
+        "%H:%M:%S"
+        if time_string.count(":") == 2
+        else "%H:%M"
+    )
 
     return datetime.strptime(
         time_string,
@@ -80,17 +155,17 @@ def _time_string_to_object(time_string):
     ).time()
 
 
-# ============================================================
+# --------------------------------------
 # DATABASE CONNECTION
-# ============================================================
+# --------------------------------------
 
 def get_connection():
     """
     Return a SQLite connection with named-column access.
 
-    sqlite3.Row allows values to be accessed using:
+    Example:
 
-        row["column_name"]
+        row["full_name"]
     """
 
     connection = sqlite3.connect(
@@ -100,7 +175,6 @@ def get_connection():
 
     connection.row_factory = sqlite3.Row
 
-    # Enable foreign-key enforcement for this connection.
     connection.execute(
         "PRAGMA foreign_keys = ON"
     )
@@ -108,13 +182,13 @@ def get_connection():
     return connection
 
 
-# ============================================================
+# --------------------------------------
 # DATABASE INITIALIZATION
-# ============================================================
+# --------------------------------------
 
 def init_db():
     """
-    Create required tables if they do not exist.
+    Create all required database tables.
 
     Existing tables and records are preserved.
 
@@ -130,10 +204,6 @@ def init_db():
     try:
         connection = get_connection()
         cursor = connection.cursor()
-
-        # ----------------------------------------------------
-        # Settings table
-        # ----------------------------------------------------
 
         cursor.execute(
             """
@@ -176,10 +246,6 @@ def init_db():
             ),
         )
 
-        # ----------------------------------------------------
-        # Students table
-        # ----------------------------------------------------
-
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS students (
@@ -202,10 +268,6 @@ def init_db():
             )
             """
         )
-
-        # ----------------------------------------------------
-        # Attendance table
-        # ----------------------------------------------------
 
         cursor.execute(
             """
@@ -247,10 +309,6 @@ def init_db():
             )
             """
         )
-
-        # ----------------------------------------------------
-        # Users table
-        # ----------------------------------------------------
 
         cursor.execute(
             """
@@ -307,9 +365,9 @@ def init_db():
             connection.close()
 
 
-# ============================================================
+# --------------------------------------
 # USER ACCOUNT OPERATIONS
-# ============================================================
+# --------------------------------------
 
 def create_user(
     username,
@@ -318,76 +376,61 @@ def create_user(
     role,
 ):
     """
-    Create a system user account.
+    Create a system account.
 
     Supported roles:
     - admin
     - monitor
-
-    The password is stored as a secure hash.
-
-    Returns:
-        True when the user is created.
-        False when validation or insertion fails.
     """
 
     connection = None
 
     try:
-        username = (
-            username or ""
-        ).strip().lower()
+        username = _clean_text(
+            username
+        ).lower()
 
         password = password or ""
 
-        full_name = (
-            full_name or ""
-        ).strip()
+        full_name = _clean_text(
+            full_name
+        )
 
-        role = (
-            role or ""
-        ).strip().lower()
+        role = _clean_text(
+            role
+        ).lower()
 
         if not username:
             print(
-                "[USER ERROR] "
-                "Username is required."
+                "[USER ERROR] Username is required."
             )
-
             return False
 
         if len(username) < 3:
             print(
-                "[USER ERROR] "
-                "Username must contain at least "
-                "3 characters."
+                "[USER ERROR] Username must contain "
+                "at least 3 characters."
             )
-
             return False
 
         if not full_name:
             print(
-                "[USER ERROR] "
-                "Full name is required."
+                "[USER ERROR] Full name is required."
             )
-
             return False
 
         if len(password) < 6:
             print(
-                "[USER ERROR] "
-                "Password must contain at least "
-                "6 characters."
+                "[USER ERROR] Password must contain "
+                "at least 6 characters."
             )
-
             return False
 
         if role not in ALLOWED_USER_ROLES:
             print(
-                "[USER ERROR] "
-                "Role must be 'admin' or 'monitor'."
+                "[USER ERROR] Role must be "
+                "'admin' or 'monitor'."
             )
-
             return False
 
         password_hash = generate_password_hash(
@@ -455,9 +498,7 @@ def create_user(
 
 def get_user(user_id):
     """
-    Return one system user by ID.
-
-    The password hash is intentionally excluded.
+    Return one system user without the password hash.
     """
 
     connection = None
@@ -500,16 +541,15 @@ def get_user_by_username(username):
     """
     Return one user account by username.
 
-    This function includes password_hash because it is used
-    internally for authentication.
+    The password hash is included for authentication.
     """
 
     connection = None
 
     try:
-        username = (
-            username or ""
-        ).strip().lower()
+        username = _clean_text(
+            username
+        ).lower()
 
         if not username:
             return None
@@ -550,9 +590,7 @@ def get_user_by_username(username):
 
 def get_users():
     """
-    Return all system user accounts.
-
-    Password hashes are not returned.
+    Return all accounts without their password hashes.
     """
 
     connection = None
@@ -597,16 +635,14 @@ def authenticate_user(
     password,
 ):
     """
-    Authenticate a user with username and password.
+    Authenticate a user.
 
-    Returns:
-        User database row when authentication succeeds.
-        None when authentication fails.
+    Returns the user row when successful, otherwise None.
     """
 
-    username = (
-        username or ""
-    ).strip().lower()
+    username = _clean_text(
+        username
+    ).lower()
 
     password = password or ""
 
@@ -625,15 +661,12 @@ def authenticate_user(
             "[LOGIN] Disabled account attempted "
             f"to sign in: {username}"
         )
-
         return None
 
-    password_is_correct = check_password_hash(
+    if not check_password_hash(
         user["password_hash"],
         password,
-    )
-
-    if not password_is_correct:
+    ):
         return None
 
     return user
@@ -645,10 +678,6 @@ def update_user_password(
 ):
     """
     Change a user's password.
-
-    Returns:
-        True when the password is updated.
-        False when validation or update fails.
     """
 
     connection = None
@@ -658,11 +687,9 @@ def update_user_password(
 
         if len(new_password) < 6:
             print(
-                "[USER ERROR] "
-                "New password must contain at least "
-                "6 characters."
+                "[USER ERROR] New password must "
+                "contain at least 6 characters."
             )
-
             return False
 
         password_hash = generate_password_hash(
@@ -691,7 +718,6 @@ def update_user_password(
                 "[USER ERROR] "
                 f"User ID {user_id} does not exist."
             )
-
             return False
 
         connection.commit()
@@ -719,21 +745,13 @@ def set_user_active(
     is_active,
 ):
     """
-    Enable or disable a system user account.
-
-    Args:
-        user_id: User database ID.
-        is_active: True to enable, False to disable.
+    Enable or disable a user account.
     """
 
     connection = None
 
     try:
-        active_value = (
-            1
-            if is_active
-            else 0
-        )
+        active_value = 1 if is_active else 0
 
         connection = get_connection()
         cursor = connection.cursor()
@@ -752,7 +770,6 @@ def set_user_active(
 
         if cursor.rowcount == 0:
             connection.rollback()
-
             return False
 
         connection.commit()
@@ -777,9 +794,9 @@ def set_user_active(
 
 def delete_user(user_id):
     """
-    Delete one system login account.
+    Delete a login account.
 
-    This does not delete any student or attendance records.
+    Student and attendance records are not affected.
     """
 
     connection = None
@@ -798,7 +815,6 @@ def delete_user(user_id):
 
         if cursor.rowcount == 0:
             connection.rollback()
-
             return False
 
         connection.commit()
@@ -821,13 +837,13 @@ def delete_user(user_id):
             connection.close()
 
 
-# ============================================================
+# --------------------------------------
 # SETTINGS
-# ============================================================
+# --------------------------------------
 
 def get_settings():
     """
-    Return the current attendance schedule settings.
+    Return the current attendance schedule.
     """
 
     connection = None
@@ -851,7 +867,9 @@ def get_settings():
         row = cursor.fetchone()
 
         if row is None:
-            return dict(DEFAULT_SETTINGS)
+            return dict(
+                DEFAULT_SETTINGS
+            )
 
         return {
             "checkin_start": row["checkin_start"],
@@ -861,7 +879,9 @@ def get_settings():
             "checkout_ontime_start": (
                 row["checkout_ontime_start"]
             ),
-            "midday_cutoff": row["midday_cutoff"],
+            "midday_cutoff": (
+                row["midday_cutoff"]
+            ),
         }
 
     except sqlite3.Error as error:
@@ -870,7 +890,9 @@ def get_settings():
             f"Could not load settings: {error}"
         )
 
-        return dict(DEFAULT_SETTINGS)
+        return dict(
+            DEFAULT_SETTINGS
+        )
 
     finally:
         if connection:
@@ -890,6 +912,22 @@ def update_settings(
     connection = None
 
     try:
+        checkin_start = _clean_text(
+            checkin_start
+        )
+
+        checkin_ontime_end = _clean_text(
+            checkin_ontime_end
+        )
+
+        checkout_ontime_start = _clean_text(
+            checkout_ontime_start
+        )
+
+        midday_cutoff = _clean_text(
+            midday_cutoff
+        )
+
         start_time = _time_string_to_object(
             checkin_start
         )
@@ -938,10 +976,10 @@ def update_settings(
             WHERE id = 1
             """,
             (
-                checkin_start.strip(),
-                checkin_ontime_end.strip(),
-                checkout_ontime_start.strip(),
-                midday_cutoff.strip(),
+                checkin_start,
+                checkin_ontime_end,
+                checkout_ontime_start,
+                midday_cutoff,
             ),
         )
 
@@ -952,7 +990,6 @@ def update_settings(
                 "[SETTINGS ERROR] "
                 "Settings row is missing."
             )
-
             return False
 
         connection.commit()
@@ -983,9 +1020,9 @@ def update_settings(
             connection.close()
 
 
-# ============================================================
-# STUDENT OPERATIONS
-# ============================================================
+# --------------------------------------
+# INDIVIDUAL STUDENT OPERATIONS
+# --------------------------------------
 
 def add_student(
     student_code,
@@ -996,28 +1033,49 @@ def add_student(
     face_folder,
 ):
     """
-    Add a student.
+    Add one student.
 
-    Returns True on success, otherwise False.
+    Numeric codes are padded to at least two digits.
+
+    Examples:
+
+        1  -> 01
+        2  -> 02
+        10 -> 10
     """
 
     connection = None
 
     try:
-        student_code = (
-            student_code or ""
-        ).strip()
+        student_code = normalize_student_code(
+            student_code
+        )
 
-        full_name = (
-            full_name or ""
-        ).strip()
+        full_name = _clean_text(
+            full_name
+        )
+
+        email = _clean_text(
+            email
+        )
+
+        department = _clean_text(
+            department
+        )
+
+        year_level = _clean_text(
+            year_level
+        )
+
+        face_folder = _clean_text(
+            face_folder
+        )
 
         if not student_code:
             print(
                 "[STUDENT ERROR] "
                 "Student code is required."
             )
-
             return False
 
         if not full_name:
@@ -1025,7 +1083,6 @@ def add_student(
                 "[STUDENT ERROR] "
                 "Student full name is required."
             )
-
             return False
 
         connection = get_connection()
@@ -1047,10 +1104,10 @@ def add_student(
             (
                 student_code,
                 full_name,
-                (email or "").strip(),
-                (department or "").strip(),
-                (year_level or "").strip(),
-                (face_folder or "").strip(),
+                email,
+                department,
+                year_level,
+                face_folder,
             ),
         )
 
@@ -1086,9 +1143,422 @@ def add_student(
             connection.close()
 
 
+# --------------------------------------
+# BULK STUDENT IMPORT
+# --------------------------------------
+
+def bulk_add_students(student_rows):
+    """
+    Validate and import multiple students in one transaction.
+
+    Each row must be a dictionary with these keys:
+
+        student_code
+        full_name
+        email
+        department
+        year_level
+
+    Required:
+        student_code
+        full_name
+
+    Optional:
+        email
+        department
+        year_level
+
+    Numeric codes are normalized to at least two digits:
+
+        1   -> 01
+        2   -> 02
+        3   -> 03
+        10  -> 10
+
+    Existing database codes are skipped.
+
+    Duplicate codes inside the uploaded file are skipped.
+
+    Returns a detailed result dictionary.
+    """
+
+    result = {
+        "total_rows": 0,
+        "imported_count": 0,
+        "duplicate_count": 0,
+        "invalid_count": 0,
+        "imported_students": [],
+        "duplicate_rows": [],
+        "invalid_rows": [],
+        "success": False,
+        "database_error": None,
+    }
+
+    if student_rows is None:
+        result["database_error"] = (
+            "No student records were provided."
+        )
+        return result
+
+    try:
+        student_rows = list(
+            student_rows
+        )
+
+    except TypeError:
+        result["database_error"] = (
+            "Student records must be a list."
+        )
+        return result
+
+    result["total_rows"] = len(
+        student_rows
+    )
+
+    if not student_rows:
+        result["database_error"] = (
+            "The uploaded file contains no "
+            "student records."
+        )
+        return result
+
+    connection = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT student_code
+            FROM students
+            """
+        )
+
+        existing_codes = {
+            normalize_student_code(
+                row["student_code"]
+            ).lower()
+            for row in cursor.fetchall()
+        }
+
+        file_codes = set()
+        valid_students = []
+
+        # Excel/CSV row 1 is the header, so data begins at row 2.
+        for row_number, row in enumerate(
+            student_rows,
+            start=2,
+        ):
+            if not isinstance(row, dict):
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": "",
+                        "full_name": "",
+                        "reason": (
+                            "The row is not a valid "
+                            "student record."
+                        ),
+                    }
+                )
+                continue
+
+            student_code = normalize_student_code(
+                row.get("student_code", "")
+            )
+
+            full_name = _clean_text(
+                row.get("full_name", "")
+            )
+
+            email = _clean_text(
+                row.get("email", "")
+            )
+
+            department = _clean_text(
+                row.get("department", "")
+            )
+
+            year_level = _clean_text(
+                row.get("year_level", "")
+            )
+
+            normalized_code = (
+                student_code.lower()
+            )
+
+            if not student_code:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": "",
+                        "full_name": full_name,
+                        "reason": (
+                            "Student code is required."
+                        ),
+                    }
+                )
+                continue
+
+            if not full_name:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": "",
+                        "reason": (
+                            "Full name is required."
+                        ),
+                    }
+                )
+                continue
+
+            if len(student_code) > 50:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Student code must not exceed "
+                            "50 characters."
+                        ),
+                    }
+                )
+                continue
+
+            if len(full_name) > 150:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Full name must not exceed "
+                            "150 characters."
+                        ),
+                    }
+                )
+                continue
+
+            if len(email) > 254:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Email must not exceed "
+                            "254 characters."
+                        ),
+                    }
+                )
+                continue
+
+            if len(department) > 100:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Department must not exceed "
+                            "100 characters."
+                        ),
+                    }
+                )
+                continue
+
+            if len(year_level) > 30:
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Year level must not exceed "
+                            "30 characters."
+                        ),
+                    }
+                )
+                continue
+
+            if email and (
+                "@" not in email
+                or email.startswith("@")
+                or email.endswith("@")
+            ):
+                result["invalid_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Email format is invalid."
+                        ),
+                    }
+                )
+                continue
+
+            if normalized_code in existing_codes:
+                result["duplicate_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Student code already exists "
+                            "in the database."
+                        ),
+                    }
+                )
+                continue
+
+            if normalized_code in file_codes:
+                result["duplicate_rows"].append(
+                    {
+                        "row": row_number,
+                        "student_code": student_code,
+                        "full_name": full_name,
+                        "reason": (
+                            "Student code appears more than "
+                            "once in the uploaded file."
+                        ),
+                    }
+                )
+                continue
+
+            file_codes.add(
+                normalized_code
+            )
+
+            valid_students.append(
+                {
+                    "row": row_number,
+                    "student_code": student_code,
+                    "full_name": full_name,
+                    "email": email,
+                    "department": department,
+                    "year_level": year_level,
+                    "face_folder": "",
+                }
+            )
+
+        for student in valid_students:
+            cursor.execute(
+                """
+                INSERT INTO students
+                (
+                    student_code,
+                    full_name,
+                    email,
+                    department,
+                    year_level,
+                    face_folder
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    student["student_code"],
+                    student["full_name"],
+                    student["email"],
+                    student["department"],
+                    student["year_level"],
+                    student["face_folder"],
+                ),
+            )
+
+            result["imported_students"].append(
+                {
+                    "row": student["row"],
+                    "student_code": (
+                        student["student_code"]
+                    ),
+                    "full_name": (
+                        student["full_name"]
+                    ),
+                }
+            )
+
+        connection.commit()
+
+        result["imported_count"] = len(
+            result["imported_students"]
+        )
+
+        result["duplicate_count"] = len(
+            result["duplicate_rows"]
+        )
+
+        result["invalid_count"] = len(
+            result["invalid_rows"]
+        )
+
+        result["success"] = True
+
+        print(
+            "[STUDENT IMPORT] "
+            f"Rows: {result['total_rows']}, "
+            f"Imported: {result['imported_count']}, "
+            f"Duplicates: {result['duplicate_count']}, "
+            f"Invalid: {result['invalid_count']}"
+        )
+
+        return result
+
+    except sqlite3.IntegrityError as error:
+        if connection:
+            connection.rollback()
+
+        result["database_error"] = (
+            "The import was cancelled because a "
+            "database constraint failed: "
+            f"{error}"
+        )
+
+        result["imported_students"] = []
+        result["imported_count"] = 0
+        result["success"] = False
+
+        print(
+            "[STUDENT IMPORT ERROR] "
+            f"{result['database_error']}"
+        )
+
+        return result
+
+    except sqlite3.Error as error:
+        if connection:
+            connection.rollback()
+
+        result["database_error"] = (
+            "The import was cancelled because of "
+            f"a database error: {error}"
+        )
+
+        result["imported_students"] = []
+        result["imported_count"] = 0
+        result["success"] = False
+
+        print(
+            "[DATABASE ERROR] "
+            f"{result['database_error']}"
+        )
+
+        return result
+
+    finally:
+        if connection:
+            connection.close()
+
+
 def get_students():
     """
-    Return all students ordered by full name.
+    Return all students ordered numerically by student code.
+
+    Examples:
+        01, 02, 03, 04, 05
     """
 
     connection = None
@@ -1109,7 +1579,9 @@ def get_students():
                 face_folder,
                 created_at
             FROM students
-            ORDER BY full_name ASC
+            ORDER BY
+                CAST(student_code AS INTEGER) ASC,
+                student_code ASC
             """
         )
 
@@ -1130,7 +1602,7 @@ def get_students():
 
 def get_student(student_id):
     """
-    Return one student by database ID.
+    Return one student by ID.
     """
 
     connection = None
@@ -1186,13 +1658,25 @@ def update_student(
     connection = None
 
     try:
-        student_code = (
-            student_code or ""
-        ).strip()
+        student_code = normalize_student_code(
+            student_code
+        )
 
-        full_name = (
-            full_name or ""
-        ).strip()
+        full_name = _clean_text(
+            full_name
+        )
+
+        email = _clean_text(
+            email
+        )
+
+        department = _clean_text(
+            department
+        )
+
+        year_level = _clean_text(
+            year_level
+        )
 
         if not student_code or not full_name:
             return False
@@ -1214,16 +1698,15 @@ def update_student(
             (
                 student_code,
                 full_name,
-                (email or "").strip(),
-                (department or "").strip(),
-                (year_level or "").strip(),
+                email,
+                department,
+                year_level,
                 student_id,
             ),
         )
 
         if cursor.rowcount == 0:
             connection.rollback()
-
             return False
 
         connection.commit()
@@ -1263,7 +1746,7 @@ def set_face_folder(
     face_folder,
 ):
     """
-    Set the dataset folder associated with a student.
+    Set the student face dataset folder.
     """
 
     connection = None
@@ -1279,14 +1762,13 @@ def set_face_folder(
             WHERE id = ?
             """,
             (
-                (face_folder or "").strip(),
+                _clean_text(face_folder),
                 student_id,
             ),
         )
 
         if cursor.rowcount == 0:
             connection.rollback()
-
             return False
 
         connection.commit()
@@ -1311,7 +1793,7 @@ def set_face_folder(
 
 def delete_student(student_id):
     """
-    Delete a student and the student's attendance records.
+    Delete one student and associated attendance records.
     """
 
     connection = None
@@ -1320,7 +1802,6 @@ def delete_student(student_id):
         connection = get_connection()
         cursor = connection.cursor()
 
-        # Supports old schemas without ON DELETE CASCADE.
         cursor.execute(
             """
             DELETE FROM attendance
@@ -1339,7 +1820,6 @@ def delete_student(student_id):
 
         if cursor.rowcount == 0:
             connection.rollback()
-
             return False
 
         connection.commit()
@@ -1362,9 +1842,9 @@ def delete_student(student_id):
             connection.close()
 
 
-# ============================================================
+# --------------------------------------
 # ATTENDANCE STATUS
-# ============================================================
+# --------------------------------------
 
 def compute_attendance_status(
     record_type,
@@ -1372,7 +1852,7 @@ def compute_attendance_status(
     settings,
 ):
     """
-    Calculate On Time, Late, or Early Leave status.
+    Calculate On Time, Late, or Early Leave.
     """
 
     if isinstance(current_time, str):
@@ -1407,17 +1887,17 @@ def compute_attendance_status(
     )
 
 
-# ============================================================
+# --------------------------------------
 # RECORD ATTENDANCE
-# ============================================================
+# --------------------------------------
 
 def record_attendance(
     student_id,
     current_datetime=None,
 ):
     """
-    Record check-in before midday cutoff and check-out at or
-    after the cutoff.
+    Record check-in before the midday cutoff and check-out
+    at or after the cutoff.
 
     Returns:
         (record_type, status, time_text) when recorded.
@@ -1454,7 +1934,6 @@ def record_attendance(
         else:
             record_type = "check-out"
 
-        # Reject a check-in before the configured start.
         if record_type == "check-in":
             checkin_start = _time_string_to_object(
                 settings["checkin_start"]
@@ -1462,10 +1941,9 @@ def record_attendance(
 
             if current_time < checkin_start:
                 print(
-                    "[ATTENDANCE] "
-                    "Scan occurred before check-in start."
+                    "[ATTENDANCE] Scan occurred before "
+                    "check-in start."
                 )
-
                 return None
 
         status = compute_attendance_status(
@@ -1491,7 +1969,6 @@ def record_attendance(
                 "[ATTENDANCE ERROR] "
                 f"Student {student_id} does not exist."
             )
-
             return None
 
         cursor.execute(
@@ -1561,13 +2038,13 @@ def record_attendance(
             connection.close()
 
 
-# ============================================================
+# --------------------------------------
 # ATTENDANCE HISTORY AND REPORTS
-# ============================================================
+# --------------------------------------
 
 def get_student_attendance(student_id):
     """
-    Return a student's attendance history, newest first.
+    Return one student's attendance history, newest first.
     """
 
     connection = None
@@ -1608,8 +2085,7 @@ def get_student_attendance(student_id):
 
 def get_attendance_by_date(selected_date):
     """
-    Return attendance records for a selected date,
-    including student names.
+    Return attendance records for a selected date.
     """
 
     connection = None
@@ -1670,7 +2146,7 @@ def reset_attendance():
     """
     Delete all attendance records.
 
-    Students, user accounts, and settings are preserved.
+    Students, accounts, and settings are preserved.
     """
 
     connection = None
@@ -1703,9 +2179,9 @@ def reset_attendance():
             connection.close()
 
 
-# ============================================================
+# --------------------------------------
 # DASHBOARD STATISTICS
-# ============================================================
+# --------------------------------------
 
 def get_total_students():
     """
@@ -1742,13 +2218,13 @@ def get_total_students():
 
 def get_attendance_stats():
     """
-    Return today's dashboard statistics.
+    Return today's attendance statistics.
 
     Present:
         Unique students with a check-in today.
 
     Late:
-        Unique students whose check-in status is Late.
+        Unique students whose check-in is Late.
     """
 
     today = datetime.now().strftime(
@@ -1807,14 +2283,17 @@ def get_attendance_stats():
             connection.close()
 
 
-# ============================================================
+# --------------------------------------
 # DIRECT FILE TEST
-# ============================================================
+# --------------------------------------
 
 if __name__ == "__main__":
     success = init_db()
 
-    print(f"Database path: {DB_PATH}")
+    print(
+        f"Database path: {DB_PATH}"
+    )
+
     print(
         f"Initialization successful: {success}"
     )

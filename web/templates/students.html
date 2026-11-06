@@ -23,7 +23,7 @@
             --border: #e2e8f0;
             --danger: #ef4444;
 
-            /* Header colors (match Attendance Dashboard) */
+            /* Header colors */
             --header-bg: #dbeafe;
             --header-text: #1e3a8a;
             --header-subtext: #1e40af;
@@ -68,8 +68,8 @@
 
         .header h1 {
             margin: 0;
-            font-size: 30px;
             color: var(--header-text);
+            font-size: 30px;
         }
 
         .header p {
@@ -92,6 +92,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            min-height: 42px;
             padding: 11px 18px;
             border: none;
             border-radius: 10px;
@@ -114,7 +115,7 @@
         .button-outline {
             color: var(--header-button);
             background: #ffffff;
-            border: 1px solid var(--header-bg);
+            border: 1px solid var(--header-border);
             box-shadow: 0 2px 8px rgba(30, 64, 175, 0.12);
         }
 
@@ -122,6 +123,18 @@
         .button-outline:hover {
             background: #ffffff;
             box-shadow: 0 6px 16px rgba(30, 64, 175, 0.2);
+        }
+
+        .button-import {
+            color: #166534;
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            box-shadow: 0 2px 8px rgba(22, 101, 52, 0.12);
+        }
+
+        .button-import:hover {
+            background: #bbf7d0;
+            box-shadow: 0 6px 16px rgba(22, 101, 52, 0.18);
         }
 
         .logout-form {
@@ -139,8 +152,8 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 9px;
-            font-size: 14px;
             color: var(--header-text);
+            font-size: 14px;
         }
 
         .user-name {
@@ -420,14 +433,40 @@
             margin: 0 0 20px;
         }
 
+        .empty-actions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
         .empty-add-button {
             display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 43px;
             padding: 11px 20px;
             color: white;
             background: var(--primary);
             border-radius: 10px;
             text-decoration: none;
             font-weight: 700;
+            transition:
+                transform 0.15s,
+                background 0.15s;
+        }
+
+        .empty-add-button:hover {
+            transform: translateY(-2px);
+            background: var(--primary-dark);
+        }
+
+        .empty-import-button {
+            background: #16a34a;
+        }
+
+        .empty-import-button:hover {
+            background: #15803d;
         }
 
         /* ==================================================
@@ -461,9 +500,20 @@
             tbody td {
                 padding: 13px 12px;
             }
+
+            .empty-actions {
+                flex-direction: column;
+            }
+
+            .empty-actions .empty-add-button {
+                width: 100%;
+            }
         }
 
-        /* ---------- Accessibility ---------- */
+        /* ==================================================
+           ACCESSIBILITY
+        ================================================== */
+
         a:focus-visible,
         button:focus-visible {
             outline: 3px solid rgba(79, 70, 229, 0.5);
@@ -471,7 +521,9 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+            *,
+            *::before,
+            *::after {
                 transition: none !important;
                 animation: none !important;
             }
@@ -481,13 +533,12 @@
 
 <body>
 
-    <!-- Header -->
     <header class="header">
 
         <div class="header-inner">
 
             <div>
-                <h1>🎓 Student List</h1>
+                <h1>Student List</h1>
 
                 <p>
                     {{ students|length }}
@@ -496,16 +547,14 @@
                 </p>
             </div>
 
-
             <div class="header-actions">
 
                 <a
                     href="{{ url_for('dashboard.attendance') }}"
                     class="header-button button-outline"
                 >
-                    📊 Dashboard
+                    Dashboard
                 </a>
-
 
                 {% if current_user["role"] == "admin" %}
 
@@ -516,8 +565,14 @@
                         + Add Student
                     </a>
 
-                {% endif %}
+                    <a
+                        href="{{ url_for('import_students') }}"
+                        class="header-button button-import"
+                    >
+                        Import Student List
+                    </a>
 
+                {% endif %}
 
                 <form
                     action="{{ url_for('logout') }}"
@@ -535,7 +590,6 @@
             </div>
 
         </div>
-
 
         {% if current_user %}
 
@@ -575,7 +629,6 @@
 
     <main class="container">
 
-        <!-- Flask flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
 
             {% if messages %}
@@ -627,12 +680,12 @@
                                 <th>Full Name</th>
                                 <th>Department</th>
                                 <th>Year</th>
+
                                 <th style="text-align: center;">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
-
 
                         <tbody>
 
@@ -644,11 +697,13 @@
                                         {{ student["student_code"] }}
                                     </td>
 
-
                                     <td>
 
                                         <a
-                                            href="{{ url_for('student_profile', id=student['id']) }}"
+                                            href="{{ url_for(
+                                                'student_profile',
+                                                id=student['id']
+                                            ) }}"
                                             class="person-link"
                                         >
                                             <div class="person">
@@ -665,7 +720,6 @@
                                         </a>
 
                                     </td>
-
 
                                     <td>
 
@@ -687,7 +741,6 @@
 
                                     </td>
 
-
                                     <td>
 
                                         {% if student["year_level"] %}
@@ -707,14 +760,15 @@
 
                                     </td>
 
-
                                     <td class="actions">
 
                                         <div class="action-list">
 
-                                            <!-- Both roles can view profiles -->
                                             <a
-                                                href="{{ url_for('student_profile', id=student['id']) }}"
+                                                href="{{ url_for(
+                                                    'student_profile',
+                                                    id=student['id']
+                                                ) }}"
                                                 class="icon-button icon-view"
                                                 title="View profile"
                                                 aria-label="View profile"
@@ -722,12 +776,13 @@
                                                 👤
                                             </a>
 
-
                                             {% if current_user["role"] == "admin" %}
 
-                                                <!-- Admin only: Edit -->
                                                 <a
-                                                    href="{{ url_for('edit_student', id=student['id']) }}"
+                                                    href="{{ url_for(
+                                                        'edit_student',
+                                                        id=student['id']
+                                                    ) }}"
                                                     class="icon-button icon-edit"
                                                     title="Edit student"
                                                     aria-label="Edit student"
@@ -735,10 +790,11 @@
                                                     ✏️
                                                 </a>
 
-
-                                                <!-- Admin only: Delete -->
                                                 <form
-                                                    action="{{ url_for('delete_student_route', id=student['id']) }}"
+                                                    action="{{ url_for(
+                                                        'delete_student_route',
+                                                        id=student['id']
+                                                    ) }}"
                                                     method="POST"
                                                     class="action-form delete-form"
                                                 >
@@ -782,16 +838,30 @@
                     {% if current_user["role"] == "admin" %}
 
                         <p>
-                            Add the first student to begin using
-                            the attendance system.
+                            Add one student manually or import a complete
+                            class list from CSV or Excel.
                         </p>
 
-                        <a
-                            href="{{ url_for('add_student_page') }}"
-                            class="empty-add-button"
-                        >
-                            + Add Student
-                        </a>
+                        <div class="empty-actions">
+
+                            <a
+                                href="{{ url_for('add_student_page') }}"
+                                class="empty-add-button"
+                            >
+                                + Add Student
+                            </a>
+
+                            <a
+                                href="{{ url_for('import_students') }}"
+                                class="
+                                    empty-add-button
+                                    empty-import-button
+                                "
+                            >
+                                Import Student List
+                            </a>
+
+                        </div>
 
                     {% else %}
 
@@ -837,7 +907,5 @@
             );
         });
     </script>
-
 </body>
-
 </html>
